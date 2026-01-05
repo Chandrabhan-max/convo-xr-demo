@@ -12,34 +12,57 @@ import MeetingSetup from '@/components/MeetingSetup';
 import MeetingRoom from '@/components/MeetingRoom';
 
 const MeetingPage = () => {
-  const { id } = useParams();
+  const params = useParams();
+  const idParam = params?.id;
+
+  // ✅ normalize id
+  const meetingId =
+    typeof idParam === 'string'
+      ? idParam
+      : Array.isArray(idParam)
+      ? idParam[0]
+      : null;
+
   const { isLoaded, user } = useUser();
-  const { call, isCallLoading } = useGetCallById(id);
+  const { call, isCallLoading } = useGetCallById(meetingId);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
 
-  if (!isLoaded || isCallLoading) return <Loader />;
+  if (!meetingId) {
+    return (
+      <p className="text-center text-3xl font-bold text-white">
+        Invalid Meeting Link
+      </p>
+    );
+  }
 
-  if (!call) return (
-    <p className="text-center text-3xl font-bold text-white">
-      Call Not Found
-    </p>
-  );
+  if (!isLoaded || isCallLoading) return <Loader className="animate-spin" />;
 
-  // get more info about custom call type:  https://getstream.io/video/docs/react/guides/configuring-call-types/
-  const notAllowed = call.type === 'invited' && (!user || !call.state.members.find((m) => m.user.id === user.id));
+  if (!call) {
+    return (
+      <p className="text-center text-3xl font-bold text-white">
+        Call Not Found
+      </p>
+    );
+  }
 
-  if (notAllowed) return <Alert title="You are not allowed to join this meeting" />;
+  const notAllowed =
+    call.type === 'invited' &&
+    (!user ||
+      !call.state.members.find((m) => m.user.id === user.id));
+
+  if (notAllowed) {
+    return <Alert title="You are not allowed to join this meeting" />;
+  }
 
   return (
     <main className="h-screen w-full">
       <StreamCall call={call}>
         <StreamTheme>
-
-        {!isSetupComplete ? (
-          <MeetingSetup setIsSetupComplete={setIsSetupComplete} />
-        ) : (
-          <MeetingRoom />
-        )}
+          {!isSetupComplete ? (
+            <MeetingSetup setIsSetupComplete={setIsSetupComplete} />
+          ) : (
+            <MeetingRoom />
+          )}
         </StreamTheme>
       </StreamCall>
     </main>
